@@ -1,16 +1,11 @@
 #include <Arduino.h>
-<<<<<<< Updated upstream
-#include "MotorControl.h" //for motors
-#include "WebServer.h" //for web & wifi
-#include "MPU.h" //for IMU
-=======
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <cstdio>
 #include "control/MotorControl.h" // motors
 #include "net/Webserver.h"        // web & wifi
 #include "sensors/IMU.h"          // IMU
-#include "state/SharedState.h"   // shared variables
+#include "state/SharedState.h"    // shared variables
 
 unsigned long lastMotorPrintMs = 0;
 constexpr unsigned long motorPrintIntervalMs = 700;
@@ -41,34 +36,26 @@ void debugLogMain(const char* runId, const char* hypothesisId, const char* locat
     );
     fclose(logFile);
 }
-}
->>>>>>> Stashed changes
+} // namespace
 
 void setup() {
     Serial.begin(115200);
-    //set up motors and webserver (server and wifi)
     initMotors();
-<<<<<<< Updated upstream
-    initWebServer();
-=======
     startWebServerTask();
-    
+
     // #region agent log
     debugLogMain("initial", "H4", "src/main.cpp:setup", "setup_completed_after_webserver_task_start");
     // #endregion
->>>>>>> Stashed changes
 
     Serial.println("System ready");
 }
 
 void loop() {
     Serial.printf("Start up (1), loop (0)\n");
-    
+
     if (Serial.read() == '1') {
         calibratre();
     } else {
-<<<<<<< Updated upstream
-=======
         const bool hasNewWebInput = fetchLatestWebInputs();
         if (hasNewWebInput) {
             // #region agent log
@@ -76,22 +63,21 @@ void loop() {
             // #endregion
         }
 
-        //test output motors
+        // Periodic motor state print
         const unsigned long nowMs = millis();
         if (nowMs - lastMotorPrintMs >= motorPrintIntervalMs) {
-        lastMotorPrintMs = nowMs;
-        Serial.printf("Motors: %d, %d, %d, %d\n", motor1, motor2, motor3, motor4);
-        Serial.printf("Euler(h,p,r): %.2f, %.2f, %.2f deg  ", x_raw, y_raw, z_raw);
-        if (nowMs - lastWebFetchDebugMs >= 1000) {
-            lastWebFetchDebugMs = nowMs;
-            // #region agent log
-            debugLogMain("initial", "H5", "src/main.cpp:loop", "periodic_main_loop_state");
-            // #endregion
+            lastMotorPrintMs = nowMs;
+            Serial.printf("Motors: %d, %d, %d, %d\n", motor1, motor2, motor3, motor4);
+            Serial.printf("Euler(h,p,r): %.2f, %.2f, %.2f deg  ", x_raw, y_raw, z_raw);
+
+            if (nowMs - lastWebFetchDebugMs >= 1000) {
+                lastWebFetchDebugMs = nowMs;
+                // #region agent log
+                debugLogMain("initial", "H5", "src/main.cpp:loop", "periodic_main_loop_state");
+                // #endregion
+            }
         }
 
-        }   
->>>>>>> Stashed changes
         writeMotors();
     }
-    
 }
