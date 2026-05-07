@@ -2,10 +2,11 @@
 #include <ESPAsyncWebServer.h>
 #include <cstdio>
 
-#include "WebServer.h"
-#include "Config.h"
-#include "MotorControl.h"
+#include "net/Webserver.h"
+#include "config/BoardConfig.h"
+#include "control/MotorControl.h"
 #include "HtmlPages.h"
+#include "state/SharedState.h"
 
 AsyncWebServer server(80);
 
@@ -47,52 +48,40 @@ void webServerTask(void* /*parameter*/) {
 } // namespace
 
 void initWebServer() {
-
     WiFi.softAP(WIFI_SSID, WIFI_PASS);
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *req) {
         req->send_P(200, "text/html", HTML_CONTROL_PAGE);
     });
 
-    // server.on("/set", HTTP_GET, [](AsyncWebServerRequest *req){
-    //     if (req->hasParam("m1")) motor1 = req->getParam("m1")->value().toInt();
-    //     if (req->hasParam("m2")) motor2 = req->getParam("m2")->value().toInt();
-    //     if (req->hasParam("m3")) motor3 = req->getParam("m3")->value().toInt();
-    //     if (req->hasParam("m4")) motor4 = req->getParam("m4")->value().toInt();
-    //     req->send(200, "text/plain", "OK");
-    // });
-
-<<<<<<< Updated upstream
-=======
     // Receive joystick data
     server.on("/update", HTTP_GET, [](AsyncWebServerRequest *req) {
         int nextThrottle = pendingThrottle;
         int nextYaw = pendingYawCmd;
         int nextRollX = pendingRollX;
         int nextRollY = pendingRollY;
+
         if (req->hasParam("throttle")) nextThrottle = req->getParam("throttle")->value().toInt();
-        if (req->hasParam("yaw")) nextYaw = req->getParam("yaw")->value().toInt();
-        if (req->hasParam("rollX")) nextRollX = req->getParam("rollX")->value().toInt();
-        if (req->hasParam("rollY")) nextRollY = req->getParam("rollY")->value().toInt();
+        if (req->hasParam("yaw"))      nextYaw      = req->getParam("yaw")->value().toInt();
+        if (req->hasParam("rollX"))    nextRollX    = req->getParam("rollX")->value().toInt();
+        if (req->hasParam("rollY"))    nextRollY    = req->getParam("rollY")->value().toInt();
 
         portENTER_CRITICAL(&webInputMux);
-        pendingThrottle = nextThrottle;
-        pendingYawCmd = nextYaw;
-        pendingRollX = nextRollX;
-        pendingRollY = nextRollY;
-        pendingInputUpdated = true;
+        pendingThrottle      = nextThrottle;
+        pendingYawCmd        = nextYaw;
+        pendingRollX         = nextRollX;
+        pendingRollY         = nextRollY;
+        pendingInputUpdated  = true;
         portEXIT_CRITICAL(&webInputMux);
 
         // #region agent log
         debugLog("initial", "H1", "src/Webserver.cpp:/update", "web_update_received", nextThrottle, nextYaw, nextRollX, nextRollY);
         // #endregion
 
-        // Serial.printf("Throttle=%d | Yaw=%d | RollX=%d | RollY=%d\n", throttle, yawCmd, rollX, rollY);
         req->send(200, "text/plain", "OK");
     });
 
->>>>>>> Stashed changes
-    server.on("/stop", HTTP_GET, [](AsyncWebServerRequest *req){
+    server.on("/stop", HTTP_GET, [](AsyncWebServerRequest *req) {
         stopMotors();
         req->send(200, "text/plain", "STOP");
     });
@@ -105,6 +94,7 @@ void startWebServerTask() {
         return;
     }
     xTaskCreatePinnedToCore(webServerTask, "web-server", 8192, nullptr, 1, &webServerTaskHandle, 0);
+
     // #region agent log
     debugLog("initial", "H4", "src/Webserver.cpp:startWebServerTask", "web_server_task_started", throttle, yawCmd, rollX, rollY);
     // #endregion
@@ -121,18 +111,19 @@ bool fetchLatestWebInputs() {
     hasNewInput = pendingInputUpdated;
     if (hasNewInput) {
         nextThrottle = pendingThrottle;
-        nextYaw = pendingYawCmd;
-        nextRollX = pendingRollX;
-        nextRollY = pendingRollY;
+        nextYaw      = pendingYawCmd;
+        nextRollX    = pendingRollX;
+        nextRollY    = pendingRollY;
         pendingInputUpdated = false;
     }
     portEXIT_CRITICAL(&webInputMux);
 
     if (hasNewInput) {
         throttle = nextThrottle;
-        yawCmd = nextYaw;
-        rollX = nextRollX;
-        rollY = nextRollY;
+        yawCmd   = nextYaw;
+        rollX    = nextRollX;
+        rollY    = nextRollY;
+
         // #region agent log
         debugLog("initial", "H2", "src/Webserver.cpp:fetchLatestWebInputs", "main_loop_applied_latest_inputs", throttle, yawCmd, rollX, rollY);
         // #endregion
